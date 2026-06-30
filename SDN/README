@@ -1,0 +1,69 @@
+Demo mode 1: inside AWS
+1. Start server
+cd ~/Failover-UPF/SDN
+sudo -E python3 sdn-server-inside-aws.py
+2. Trigger
+curl -X POST http://127.0.0.1:8000/update-route-gnodeb \
+  -H "Content-Type: application/json" \
+  -d '{
+    "n3oldUPF": "192.168.40.11",
+    "n3": [{"ip": "192.168.40.12"}],
+    "n4": [{"ip": "192.168.50.12"}],
+    "n6": [{"ip": "192.168.60.12"}]
+  }'
+
+Sửa IP theo UPF mới trong AWS của bạn.
+
+3. Kiểm tra OVS flow
+sudo ovs-ofctl -O OpenFlow13 dump-flows br-ovs | grep -E '192.168.40.11|192.168.40.12|2152|0x5101'
+4. Bắt gói
+sudo tcpdump -ni ens6 'udp port 2152'
+sudo tcpdump -ni int0 'udp port 2152'
+5. Cleanup
+sudo ./cleanup_inside_aws.sh 192.168.40.12 192.168.40.11
+Demo mode 2: cross-cloud AWS -> Azure
+1. Start server
+cd ~/Failover-UPF/SDN
+sudo -E python3 sdn-server-cross-cloud.py
+2. Trigger
+curl -X POST http://127.0.0.1:8000/update-route-gnodeb \
+  -H "Content-Type: application/json" \
+  -d '{
+    "n3oldUPF": "192.168.40.11",
+    "n3": [{"ip": "10.60.41.4"}],
+    "n4": [{"ip": "10.60.51.4"}],
+    "n6": [{"ip": "10.60.61.4"}]
+  }'
+3. Kiểm tra route và NAT
+ip route get 10.60.41.4
+
+sudo iptables -t nat -S OUTPUT | grep upf-migrate-cross
+sudo iptables -t nat -S INPUT | grep upf-migrate-cross || true
+
+sudo ovs-ofctl -O OpenFlow13 dump-flows br-ovs | grep -E '192.168.40.11|10.60.41.4|2152' || true
+
+Kỳ vọng route:
+
+10.60.41.4 via 192.168.0.1 dev ens5 src 192.168.0.197
+4. Bắt gói trên AWS
+
+Mở 2 terminal:
+
+sudo tcpdump -ni ens5 'host 10.60.41.4 and udp port 2152'
+sudo tcpdump -ni ens6 'host 10.60.41.4 and udp port 2152'
+
+Với mode cross-cloud, kỳ vọng packet đi ra ens5, không phải ens6.
+
+5. Bắt gói trong Azure UPF pod
+tcpdump -ni n3 'host 192.168.0.197 and udp port 2152'
+
+Kỳ vọng thấy:
+
+192.168.0.197.2152 > 10.60.41.4.2152 UDP
+6. Test UE
+ping -I uesimtun0 192.168.60.123
+
+Nếu UPF nhận GTP-U rồi nhưng ping UE vẫn chưa thông, bước tiếp theo sẽ là debug UPF decap/N6/return route.
+
+7. Cleanup
+sudo ./cleanup_cross_cloud.sh 10.60.41.4 192.168.40.11

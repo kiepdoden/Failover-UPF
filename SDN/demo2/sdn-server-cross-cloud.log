@@ -1,0 +1,16 @@
+nohup: ignoring input
+ * Serving Flask app 'sdn-server-cross-cloud'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.0.197:8000
+[33mPress CTRL+C to quit[0m
+Received data: {'n3': [{'ip': '10.60.41.4'}], 'n3oldUPF': '192.168.40.11', 'n4': [{'ip': '10.60.51.4'}], 'n6': [{'ip': '10.60.61.4'}]}
+Mode: cross-cloud-ens5-output-dnat
+Payload New N3: 10.60.41.4
+Effective Target: 10.60.41.4
+Old N3: 192.168.40.11
+N4: 10.60.51.4
+N6: 10.60.61.4
+192.168.10.11 - - [29/Jun/2026 13:13:02] "POST /update-route-gnodeb HTTP/1.1" 200 -
